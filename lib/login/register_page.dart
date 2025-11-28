@@ -1,7 +1,77 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import '../screens/home_page.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
+
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _rePasswordController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _rePasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final rePassword = _rePasswordController.text;
+
+    if (name.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        rePassword.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Semua field harus diisi')));
+      return;
+    }
+
+    if (password != rePassword) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Password tidak cocok')));
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await AuthService.register(email: email, password: password, name: name);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Registrasi gagal: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,19 +132,27 @@ class RegisterPage extends StatelessWidget {
                   ),
 
                   // Number field
-                  _buildInputField('Number'),
+                  _buildInputField('Number', _nameController),
                   const SizedBox(height: 16),
 
                   // Email field
-                  _buildInputField('Email'),
+                  _buildInputField('Email', _emailController),
                   const SizedBox(height: 16),
 
                   // Password field
-                  _buildInputField('Password', isPassword: true),
+                  _buildInputField(
+                    'Password',
+                    _passwordController,
+                    isPassword: true,
+                  ),
                   const SizedBox(height: 16),
 
                   // Re-Password field
-                  _buildInputField('Re-Password', isPassword: true),
+                  _buildInputField(
+                    'Re-Password',
+                    _rePasswordController,
+                    isPassword: true,
+                  ),
                   const SizedBox(height: 30),
 
                   // Register button
@@ -82,9 +160,7 @@ class RegisterPage extends StatelessWidget {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Implement register functionality
-                      },
+                      onPressed: _isLoading ? null : _handleRegister,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(
                           0xFF4CAF50,
@@ -93,14 +169,25 @@ class RegisterPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                       ),
-                      child: const Text(
-                        'DAFTAR',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'DAFTAR',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -146,8 +233,13 @@ class RegisterPage extends StatelessWidget {
   }
 
   // Helper method to build input fields
-  Widget _buildInputField(String hintText, {bool isPassword = false}) {
+  Widget _buildInputField(
+    String hintText,
+    TextEditingController controller, {
+    bool isPassword = false,
+  }) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hintText,

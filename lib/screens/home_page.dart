@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'profile_page.dart';
+import '../services/attendance_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,6 +14,7 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   late Timer _timer;
   DateTime _currentTime = DateTime.now();
+  bool _showAttendanceMenu = false;
 
   @override
   void initState() {
@@ -91,11 +93,12 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Header Section with Background Image
-            Container(
-              height: 280,
+            Column(
+              children: [
+                // Header Section with Background Image
+                Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF2E7D32),
                 image: _buildBackgroundImage(),
@@ -344,7 +347,9 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF2E7D32),
         onPressed: () {
-          // Main action
+          setState(() {
+            _showAttendanceMenu = true;
+          });
         },
         child: const Text(
           'M',
@@ -497,11 +502,24 @@ class _HomePageState extends State<HomePage> {
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('$type berhasil!')));
+                try {
+                  if (type == 'Check In') {
+                    await AttendanceService.checkIn();
+                  } else {
+                    await AttendanceService.checkOut();
+                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('$type berhasil!')));
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('$type gagal: $e')));
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: type == 'Check In'

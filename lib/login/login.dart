@@ -2,9 +2,62 @@ import 'package:flutter/material.dart';
 import 'package:aplikasiku/login/forgot_password_page.dart';
 import 'package:aplikasiku/login/register_page.dart';
 import 'package:aplikasiku/screens/home_page.dart';
+import '../services/auth_service.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email dan password harus diisi')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await AuthService.login(email, password);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Login gagal: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +87,9 @@ class LoginPage extends StatelessWidget {
 
                 // STEP 2: INPUT EMAIL
                 TextFormField(
+                  controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   autofocus: false,
-                  // initialValue: 'alucard@gmail.com', // Opsional dari video
                   decoration: InputDecoration(
                     hintText: 'Email',
                     contentPadding: const EdgeInsets.fromLTRB(
@@ -54,8 +107,8 @@ class LoginPage extends StatelessWidget {
 
                 // STEP 3: INPUT PASSWORD
                 TextFormField(
+                  controller: _passwordController,
                   autofocus: false,
-                  // initialValue: 'somepassword', // Opsional dari video
                   obscureText: true, // Menyembunyikan password
                   decoration: InputDecoration(
                     hintText: 'Password',
@@ -86,19 +139,22 @@ class LoginPage extends StatelessWidget {
                           Colors.lightBlueAccent, // Warna dari video
                       foregroundColor: Colors.white, // Warna teks
                     ),
-                    onPressed: () {
-                      // Navigate to home page after login
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HomePage(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      'Log In',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    onPressed: _isLoading ? null : _handleLogin,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Text(
+                            'Log In',
+                            style: TextStyle(color: Colors.white),
+                          ),
                   ),
                 ),
 

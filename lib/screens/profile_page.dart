@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
+import '../services/auth_service.dart';
+import '../login/login.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -421,14 +423,12 @@ class _ProfilePageState extends State<ProfilePage> {
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
+              onPressed: () async {
+                await AuthService.logout();
+                if (!mounted) return;
                 Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
                   (route) => false,
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Berhasil keluar')),
                 );
               },
               style: ElevatedButton.styleFrom(
